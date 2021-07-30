@@ -86,48 +86,47 @@ router.post("/sellProduct", BearerAuth, async (req, res) => {
   };
 
   let theUser = await UserSchema.find({ _id: foundProduct[0].userID });
-  // let alreadyThere = [];
 
-  // theUser[0].soldProducts.forEach((obj) => {
-  //   if (obj._id == foundProduct[0]._id) {
-  //     alreadyThere.push(obj);
-  //   }
-  // });
-  // console.log(alreadyThere);
+  let findProduct = null;
+  theUser[0].soldProducts.forEach((product) => {
+    // String the id because it will be as an object in the mongoDB
+    toString(product._id) == toString(foundProduct[0]._id)
+      ? (findProduct = foundProduct[0])
+      : (findProduct = null);
+  });
 
-  // theUser[0].soldProducts.forEach((obj) => {
-  //   if (obj._id == foundProduct[0]._id) {
-  //     await UserSchema.findOneAndUpdate(
-  //       { _id: foundProduct[0].userID },
+  // Something wrong here ----------------------
+  let index = -1;
+  theUser[0].soldProducts.forEach((product) => {
+    if (product._id == foundProduct[0]._id) {
+      return;
+    } else {
+      index++;
+    }
+  });
 
-  //       {
-  //         $set: {
-  //           "soldProducts.0.quantitySold": +1,
-  //         },
-  //       }
-  //     );
-  //     res.json({ response: "Product Updated" });
-  //   } else {
+  console.log(index);
+
+  // --------------------------
+  let insert = `soldProducts.${index}.quantitySold`;
+
   await UserSchema.findOneAndUpdate(
     { _id: foundProduct[0].userID },
 
-    theUser[0].soldProducts[0]._id == foundProduct[0]._id
+    findProduct
       ? {
-          $addToSet: {
-            soldProducts: myProduct,
+          $set: {
+            insert: "has been Changeddd !!! ",
           },
         }
       : {
-          $set: {
-            "soldProducts.0.quantitySold": +1,
+          $push: {
+            soldProducts: myProduct,
           },
         }
   );
-  // );
   res.json({ response: "Product Sold" });
-  // }
 });
-// });
 
 router.get("/selling-statement", BearerAuth, (req, res) => {
   res.json({ data: req.user.soldProducts });
@@ -136,7 +135,7 @@ router.get("/selling-statement", BearerAuth, (req, res) => {
 router.get("/inventory-statement", BearerAuth, async (req, res) => {
   try {
     let allProductsFound = await ProductSchema.find({ userID: req.user._id });
-    if (allProductsFound) {
+    if (allProductsFound.length > 0) {
       res.json({ data: allProductsFound });
     } else {
       res.json({ response: "No Products Found !" });
