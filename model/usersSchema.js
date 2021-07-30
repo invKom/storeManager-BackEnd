@@ -19,7 +19,6 @@ UsersSchema.virtual("token").get(function () {
 
 UsersSchema.statics.BearerAuth = async function (token) {
   try {
-    // console.log('inside schema', token)
     let checkTheToken = JWT.verify(token, mySecret);
     let findUser = this.findOne({ userName: checkTheToken.userName });
 

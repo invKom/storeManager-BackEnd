@@ -2,7 +2,6 @@ const UserSchema = require("../model/usersSchema");
 module.exports = async (req, res, next) => {
   try {
     let token = "";
-    // console.log('inside midssssssssssdle', req.headers.Authorization)
     if (req.headers.authorization) {
       token = req.headers.authorization.split(" ").pop();
     }

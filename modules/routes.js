@@ -57,36 +57,77 @@ router.post("/login", BasicAuth, async (req, res) => {
 });
 
 router.post("/sellProduct", BearerAuth, async (req, res) => {
-  const { barCode } = req.body;
-  let foundProduct = await ProductSchema.find({ productCode: barCode });
-
-  let relatedUser = await UserSchema.find({ _id: foundProduct[0].userID });
-  console.log(relatedUser);
-
   let today = new Date();
   let date =
     today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
   let time =
     today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
 
-  if (foundProduct[0].quantity > 0) {
-    foundProduct[0].quantity - 1;
+  const { barCode } = req.body;
+  let foundProduct = await ProductSchema.find({ productCode: barCode });
 
-    relatedUser[0].soldProducts.push({
-      productName: foundProduct[0].productName,
-      productPrice: foundProduct[0].productPrice,
-      dateSold: date,
-      timeSold: time,
-      quantitySold: relatedUser[0].soldProducts.quantitySold
-        ? relatedUser[0].soldProducts.quantitySold++
-        : 1,
-    });
+  await ProductSchema.findOneAndUpdate(
+    { productCode: barCode },
+    {
+      quantity:
+        foundProduct[0].quantity > 0
+          ? foundProduct[0].quantity - 1
+          : res.json({ response: "No enough quantity in the inventory!" }),
+    }
+  );
 
-    res.json({ response: "Product Sold" });
-  } else {
-    res.json({ response: "No enough quantity in the inventory!" });
-  }
+  let myProduct = {
+    _id: foundProduct[0]._id,
+    productName: foundProduct[0].productName,
+    productPrice: foundProduct[0].productPrice,
+    dateSold: date,
+    timeSold: time,
+    quantitySold: +1,
+  };
+
+  let theUser = await UserSchema.find({ _id: foundProduct[0].userID });
+  // let alreadyThere = [];
+
+  // theUser[0].soldProducts.forEach((obj) => {
+  //   if (obj._id == foundProduct[0]._id) {
+  //     alreadyThere.push(obj);
+  //   }
+  // });
+  // console.log(alreadyThere);
+
+  // theUser[0].soldProducts.forEach((obj) => {
+  //   if (obj._id == foundProduct[0]._id) {
+  //     await UserSchema.findOneAndUpdate(
+  //       { _id: foundProduct[0].userID },
+
+  //       {
+  //         $set: {
+  //           "soldProducts.0.quantitySold": +1,
+  //         },
+  //       }
+  //     );
+  //     res.json({ response: "Product Updated" });
+  //   } else {
+  await UserSchema.findOneAndUpdate(
+    { _id: foundProduct[0].userID },
+
+    theUser[0].soldProducts[0]._id == foundProduct[0]._id
+      ? {
+          $addToSet: {
+            soldProducts: myProduct,
+          },
+        }
+      : {
+          $set: {
+            "soldProducts.0.quantitySold": +1,
+          },
+        }
+  );
+  // );
+  res.json({ response: "Product Sold" });
+  // }
 });
+// });
 
 router.get("/selling-statement", BearerAuth, (req, res) => {
   res.json({ data: req.user.soldProducts });
