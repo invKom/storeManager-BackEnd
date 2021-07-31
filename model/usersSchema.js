@@ -7,7 +7,7 @@ const mySecret = process.env.secret;
 
 const UsersSchema = new mongoose.Schema({
   userName: { type: String, required: true },
-  email: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   soldProducts: { type: mongoose.Schema.Types.Array, ref: "product" },
 });

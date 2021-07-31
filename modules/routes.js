@@ -8,6 +8,9 @@ const BasicAuth = require("../middleWares/basicAuth.js");
 const BearerAuth = require("../middleWares/bearerAuth.js");
 const bcrypt = require("bcrypt");
 
+const JWT = require("jsonwebtoken");
+const mySecret = process.env.secret;
+
 router.post("/addProduct", BearerAuth, (req, res) => {
   let userID = req.user._id;
   const { productName, productPrice, productCode, quantity, description } =
@@ -57,77 +60,125 @@ router.post("/login", BasicAuth, async (req, res) => {
 });
 
 router.post("/sellProduct", BearerAuth, async (req, res) => {
-  let today = new Date();
-  let date =
-    today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
-  let time =
-    today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-
   const { barCode } = req.body;
-  let foundProduct = await ProductSchema.find({ productCode: barCode });
+  try {
+    let today = new Date();
+    let date =
+      today.getFullYear() +
+      "-" +
+      (today.getMonth() + 1) +
+      "-" +
+      today.getDate();
+    let time =
+      today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
 
-  await ProductSchema.findOneAndUpdate(
-    { productCode: barCode },
-    {
-      quantity:
-        foundProduct[0].quantity > 0
-          ? foundProduct[0].quantity - 1
-          : res.json({ response: "No enough quantity in the inventory!" }),
+    let token = "";
+    if (req.headers.authorization) {
+      token = req.headers.authorization.split(" ").pop();
     }
-  );
 
-  let myProduct = {
-    _id: foundProduct[0]._id,
-    productName: foundProduct[0].productName,
-    productPrice: foundProduct[0].productPrice,
-    dateSold: date,
-    timeSold: time,
-    quantitySold: +1,
-  };
+    let returnTokenObj = JWT.verify(token, mySecret);
 
-  let theUser = await UserSchema.find({ _id: foundProduct[0].userID });
+    console.log(returnTokenObj);
 
-  let findProduct = null;
-  theUser[0].soldProducts.forEach((product) => {
-    // String the id because it will be as an object in the mongoDB
-    toString(product._id) == toString(foundProduct[0]._id)
-      ? (findProduct = foundProduct[0])
-      : (findProduct = null);
-  });
+    let myUser = await UserSchema.find({
+      email: returnTokenObj.email,
+    });
 
-  // Something wrong here ----------------------
-  let index = -1;
-  theUser[0].soldProducts.forEach((product) => {
-    if (product._id == foundProduct[0]._id) {
-      return;
+    let doesTheUserHaveProducts = await ProductSchema.find({
+      userID: myUser[0]._id,
+    });
+
+    let specificProduct = false;
+    doesTheUserHaveProducts.forEach((product) => {
+      if (product.productCode === barCode) {
+        return (specificProduct = true);
+      }
+    });
+
+    console.log(specificProduct);
+
+    if (doesTheUserHaveProducts.length && specificProduct) {
+      let foundProduct = await ProductSchema.find({ productCode: barCode });
+
+      foundProduct.length
+        ? foundProduct
+        : res.json({ response: "error in reading the BarCode" });
+
+      await ProductSchema.findOneAndUpdate(
+        { productCode: barCode },
+        {
+          quantity:
+            foundProduct[0].quantity > 0
+              ? foundProduct[0].quantity - 1
+              : res.json({ response: "No enough quantity in the inventory!" }),
+        }
+      );
+      let myProduct = {
+        _id: foundProduct[0]._id,
+        productName: foundProduct[0].productName,
+        productPrice: foundProduct[0].productPrice,
+        dateSold: date,
+        timeSold: time,
+        quantitySold: +1,
+      };
+
+      let theUser = myUser;
+      let productToAdd = null;
+      theUser[0].soldProducts.forEach((product) => {
+        // Stringify the id because it will be as an object in the mongoDB
+        if (
+          JSON.stringify(product._id) === JSON.stringify(foundProduct[0]._id)
+        ) {
+          productToAdd = foundProduct[0];
+          return;
+        }
+      });
+
+      let index = 0;
+      theUser[0].soldProducts.forEach((product, idx) => {
+        if (
+          JSON.stringify(product._id) === JSON.stringify(foundProduct[0]._id)
+        ) {
+          index = idx;
+          return;
+        }
+      });
+      console.log(index);
+
+      let quantitySoldToIncrease = -1;
+      if (theUser[0].soldProducts.length) {
+        quantitySoldToIncrease = parseInt(
+          theUser[0].soldProducts[index].quantitySold
+        );
+      }
+
+      await UserSchema.findOneAndUpdate(
+        { _id: foundProduct[0].userID },
+
+        productToAdd
+          ? {
+              $set: {
+                [`soldProducts.${index}.quantitySold`]:
+                  quantitySoldToIncrease + 1,
+              },
+            }
+          : {
+              $push: {
+                soldProducts: myProduct,
+              },
+            }
+      );
+      res.json({ response: "Product Sold" });
     } else {
-      index++;
+      res.json({ response: "This product is not in your inventory !" });
     }
-  });
-
-  console.log(index);
-
-  // --------------------------
-  let insert = `soldProducts.${index}.quantitySold`;
-
-  await UserSchema.findOneAndUpdate(
-    { _id: foundProduct[0].userID },
-
-    findProduct
-      ? {
-          $set: {
-            insert: "has been Changeddd !!! ",
-          },
-        }
-      : {
-          $push: {
-            soldProducts: myProduct,
-          },
-        }
-  );
-  res.json({ response: "Product Sold" });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
+// --------------------
 router.get("/selling-statement", BearerAuth, (req, res) => {
   res.json({ data: req.user.soldProducts });
 });
