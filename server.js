@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const MyURI = process.env.MONGODB_URI;
-const Port = process.env.port;
+const Port = process.env.port || 5000;
 
 try {
   mongoose
