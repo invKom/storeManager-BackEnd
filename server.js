@@ -6,11 +6,12 @@ const express = require("express");
 const mongoose = require("mongoose");
 const app = express();
 const myRoutes = require("./modules/routes.js");
+const notFoundHandler = require("./middleWares/errorHandlers/404.js");
+const serverErrorHandler = require("./middleWares/errorHandlers/500.js");
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 // to get the data from JSON body
 app.use(express.json());
-app.use(myRoutes);
 
 const MyURI = process.env.MONGODB_URI;
 const Port = process.env.port;
@@ -30,3 +31,7 @@ try {
 } catch (e) {
   console.log(e);
 }
+
+app.use(myRoutes);
+app.use(serverErrorHandler);
+app.use("*", notFoundHandler);
