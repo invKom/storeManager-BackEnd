@@ -26,7 +26,7 @@ try {
     })
     .then(() => {
       console.log("connected to DB");
-      app.listen(PORT, () => console.log("listening on ", Port));
+      app.listen(PORT, () => console.log("listening on ", PORT));
     });
 } catch (e) {
   console.log(e);
