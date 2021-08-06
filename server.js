@@ -12,7 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(myRoutes);
 
-const MyURI = process.env.MyURI;
+const MyURI = process.env.MONGODB_URI;
 const Port = process.env.port;
 
 try {
