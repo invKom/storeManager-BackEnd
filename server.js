@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const MyURI = process.env.MONGODB_URI;
-const Port = process.env.port || 5000;
+const PORT = process.env.PORT || 3000;
 
 try {
   mongoose
@@ -26,7 +26,7 @@ try {
     })
     .then(() => {
       console.log("connected to DB");
-      app.listen(Port, () => console.log("listening on ", Port));
+      app.listen(PORT, () => console.log("listening on ", Port));
     });
 } catch (e) {
   console.log(e);
