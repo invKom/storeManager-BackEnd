@@ -55,7 +55,7 @@ router.post("/register", (req, res) => {
 router.post("/login", BasicAuth, async (req, res) => {
   if (req.user) {
     res.cookie("token", req.user.token);
-    res.json({ response: req.user });
+    res.json({ response: req.user, token: req.user.token });
   }
 });
 
