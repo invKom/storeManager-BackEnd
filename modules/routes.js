@@ -232,4 +232,19 @@ router.post("/pre-sell", BearerAuth, async (req, res) => {
   }
 });
 
+// To edit quantity in the inventory
+router.post("/edit-quantity", BearerAuth, async (req, res) => {
+  const { productCode, quantity } = req.body;
+  try {
+    let edited = await ProductSchema.findOneAndUpdate(
+      { productCode: productCode },
+      { quantity: quantity }
+    );
+
+    res.json(edited);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
 module.exports = router;
