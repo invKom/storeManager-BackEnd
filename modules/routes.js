@@ -11,6 +11,12 @@ const bcrypt = require("bcrypt");
 const JWT = require("jsonwebtoken");
 const mySecret = process.env.secret;
 
+let today = new Date();
+let date =
+  today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+let time =
+  today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+
 router.post("/addProduct", BearerAuth, (req, res) => {
   let userID = req.user._id;
   const { productName, productPrice, productCode, quantity, description } =
@@ -62,16 +68,6 @@ router.post("/login", BasicAuth, async (req, res) => {
 router.post("/sellProduct", BearerAuth, async (req, res) => {
   const { barCode } = req.body;
   try {
-    let today = new Date();
-    let date =
-      today.getFullYear() +
-      "-" +
-      (today.getMonth() + 1) +
-      "-" +
-      today.getDate();
-    let time =
-      today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-
     // Get Token Object
     let token = "";
     if (req.headers.authorization) {
@@ -101,16 +97,19 @@ router.post("/sellProduct", BearerAuth, async (req, res) => {
     if (doesTheUserHaveProducts.length && specificProduct) {
       let foundProduct = await ProductSchema.find({ productCode: barCode });
 
-      foundProduct.length
-        ? foundProduct
-        : res.json({ response: "error in reading the BarCode" });
+      let newQuantity = 0;
+      if (foundProduct.length) {
+        newQuantity = foundProduct[0].quantity--;
+      } else {
+        res.json({ response: "error in reading the BarCode" });
+      }
 
       await ProductSchema.findOneAndUpdate(
         { productCode: barCode },
         {
           quantity:
             foundProduct[0].quantity > 0
-              ? foundProduct[0].quantity - 1
+              ? newQuantity
               : res.json({ response: "No enough quantity in the inventory!" }),
         }
       );
