@@ -65,7 +65,7 @@ router.post("/login", BasicAuth, async (req, res) => {
   }
 });
 
-router.post("/sellProduct", BearerAuth, async (req, res) => {
+router.post("/sellProduct", BearerAuth, (req, res) => {
   const { barCode } = req.body;
   try {
     // Get Token Object
@@ -90,82 +90,84 @@ router.post("/sellProduct", BearerAuth, async (req, res) => {
             return (specificProduct = true);
           }
         });
+
+        // Checking if the user have anything in the DB and have this specific product
+        if (doesTheUserHaveProducts.length && specificProduct) {
+          ProductSchema.find({ productCode: barCode }).then((foundProduct) => {
+            let newQuantity = 0;
+            if (foundProduct.length) {
+              foundProduct[0].quantity > 0
+                ? (newQuantity = foundProduct[0].quantity - 1)
+                : res.json({
+                    response: "No enough quantity in the inventory!",
+                  });
+            } else {
+              res.json({ response: "error in reading the BarCode" });
+            }
+            ProductSchema.findOneAndUpdate(
+              { productCode: barCode },
+              {
+                quantity: newQuantity,
+              }
+            ).then(() => {
+              let myProduct = {
+                _id: foundProduct[0]._id,
+                productName: foundProduct[0].productName,
+                productPrice: foundProduct[0].productPrice,
+                dateSold: date,
+                timeSold: time,
+                quantitySold: +1,
+              };
+
+              // To identify the product and the index for it
+              let theUser = myUser;
+              let productToAdd = null;
+              let index = 0;
+              theUser[0].soldProducts.forEach((product, idx) => {
+                // Stringify the id because it will be as an object in the mongoDB
+                if (
+                  JSON.stringify(product._id) ===
+                  JSON.stringify(foundProduct[0]._id)
+                ) {
+                  productToAdd = foundProduct[0];
+                  index = idx;
+                  return;
+                }
+              });
+
+              // To identify the product quantity
+              let quantitySoldToIncrease = -1;
+              if (theUser[0].soldProducts.length) {
+                quantitySoldToIncrease = parseInt(
+                  theUser[0].soldProducts[index].quantitySold
+                );
+              }
+
+              UserSchema.findOneAndUpdate(
+                { _id: foundProduct[0].userID },
+
+                productToAdd
+                  ? {
+                      $set: {
+                        [`soldProducts.${index}.quantitySold`]:
+                          quantitySoldToIncrease + 1,
+                      },
+                    }
+                  : {
+                      $push: {
+                        soldProducts: myProduct,
+                      },
+                    }
+              ).then(() => {
+                res.json({ response: "Product Sold" });
+              });
+            });
+          });
+        } else {
+          res.json({ response: "This product is not in your inventory !" });
+        }
       });
     });
-
-    // Checking if the user have anything in the DB and have this specific product
-    if (doesTheUserHaveProducts.length && specificProduct) {
-      ProductSchema.find({ productCode: barCode }).then((foundProduct) => {
-        let newQuantity = 0;
-        if (foundProduct.length) {
-          foundProduct[0].quantity > 0
-            ? (newQuantity = foundProduct[0].quantity - 1)
-            : res.json({ response: "No enough quantity in the inventory!" });
-        } else {
-          res.json({ response: "error in reading the BarCode" });
-        }
-        ProductSchema.findOneAndUpdate(
-          { productCode: barCode },
-          {
-            quantity: newQuantity,
-          }
-        ).then(() => {
-          let myProduct = {
-            _id: foundProduct[0]._id,
-            productName: foundProduct[0].productName,
-            productPrice: foundProduct[0].productPrice,
-            dateSold: date,
-            timeSold: time,
-            quantitySold: +1,
-          };
-
-          // To identify the product and the index for it
-          let theUser = myUser;
-          let productToAdd = null;
-          let index = 0;
-          theUser[0].soldProducts.forEach((product, idx) => {
-            // Stringify the id because it will be as an object in the mongoDB
-            if (
-              JSON.stringify(product._id) ===
-              JSON.stringify(foundProduct[0]._id)
-            ) {
-              productToAdd = foundProduct[0];
-              index = idx;
-              return;
-            }
-          });
-
-          // To identify the product quantity
-          let quantitySoldToIncrease = -1;
-          if (theUser[0].soldProducts.length) {
-            quantitySoldToIncrease = parseInt(
-              theUser[0].soldProducts[index].quantitySold
-            );
-          }
-
-          UserSchema.findOneAndUpdate(
-            { _id: foundProduct[0].userID },
-
-            productToAdd
-              ? {
-                  $set: {
-                    [`soldProducts.${index}.quantitySold`]:
-                      quantitySoldToIncrease + 1,
-                  },
-                }
-              : {
-                  $push: {
-                    soldProducts: myProduct,
-                  },
-                }
-          ).then(() => {
-            res.json({ response: "Product Sold" });
-          });
-        });
-      });
-    } else {
-      res.json({ response: "This product is not in your inventory !" });
-    }
   } catch (e) {
     console.log(e);
   }
