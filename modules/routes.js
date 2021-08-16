@@ -190,7 +190,7 @@ router.get("/inventory-statement", BearerAuth, async (req, res) => {
   }
 });
 
-router.get("/pre-sell", BearerAuth, async (req, res) => {
+router.post("/pre-sell", BearerAuth, async (req, res) => {
   const { barCode } = req.body;
   try {
     // Get Token Object
