@@ -97,17 +97,19 @@ router.post("/sellProduct", BearerAuth, async (req, res) => {
     if (doesTheUserHaveProducts.length && specificProduct) {
       let foundProduct = await ProductSchema.find({ productCode: barCode });
 
-      foundProduct.length
-        ? foundProduct
-        : res.json({ response: "error in reading the BarCode" });
+      let newQuantity = 0;
+      if (foundProduct.length) {
+        foundProduct[0].quantity > 0
+          ? (newQuantity = foundProduct[0].quantity--)
+          : res.json({ response: "No enough quantity in the inventory!" });
+      } else {
+        res.json({ response: "error in reading the BarCode" });
+      }
 
       await ProductSchema.findOneAndUpdate(
         { productCode: barCode },
         {
-          quantity:
-            foundProduct[0].quantity > 0
-              ? foundProduct[0].quantity - 1
-              : res.json({ response: "No enough quantity in the inventory!" }),
+          quantity: newQuantity,
         }
       );
       let myProduct = {
