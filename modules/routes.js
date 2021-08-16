@@ -100,7 +100,7 @@ router.post("/sellProduct", BearerAuth, async (req, res) => {
       let newQuantity = 0;
       if (foundProduct.length) {
         foundProduct[0].quantity > 0
-          ? (newQuantity = foundProduct[0].quantity--)
+          ? (newQuantity = foundProduct[0].quantity - 1)
           : res.json({ response: "No enough quantity in the inventory!" });
       } else {
         res.json({ response: "error in reading the BarCode" });
