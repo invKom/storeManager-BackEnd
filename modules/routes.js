@@ -135,12 +135,12 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
               });
 
               // To identify the product quantity
-              // let quantitySoldToIncrease = -1;
-              // if (theUser[0].soldProducts.length) {
-              //   quantitySoldToIncrease = parseInt(
-              //     theUser[0].soldProducts[index].quantitySold
-              //   );
-              // }
+              let prevQuantityToIncrease = 0;
+              if (theUser[0].soldProducts.length) {
+                prevQuantityToIncrease = parseInt(
+                  theUser[0].soldProducts[index].quantitySold
+                );
+              }
 
               UserSchema.findOneAndUpdate(
                 { _id: foundProduct[0].userID },
@@ -149,7 +149,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
                   ? {
                       $set: {
                         [`soldProducts.${index}.quantitySold`]:
-                          +newQuantitySold,
+                          prevQuantityToIncrease + newQuantitySold,
                       },
                     }
                   : {
