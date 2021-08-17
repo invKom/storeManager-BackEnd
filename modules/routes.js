@@ -66,7 +66,7 @@ router.post("/login", BasicAuth, async (req, res) => {
 });
 
 router.post("/sellProduct", BearerAuth, (req, res) => {
-  const { barCode, newQuantity } = req.body;
+  const { barCode, newQuantity, newQuantitySold } = req.body;
   try {
     // Get Token Object
     let token = "";
@@ -115,7 +115,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
                 productPrice: foundProduct[0].productPrice,
                 dateSold: date,
                 timeSold: time,
-                quantitySold: +newQuantity,
+                quantitySold: +1,
               };
 
               // To identify the product and the index for it
@@ -135,12 +135,12 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
               });
 
               // To identify the product quantity
-              let quantitySoldToIncrease = -1;
-              if (theUser[0].soldProducts.length) {
-                quantitySoldToIncrease = parseInt(
-                  theUser[0].soldProducts[index].quantitySold
-                );
-              }
+              // let quantitySoldToIncrease = -1;
+              // if (theUser[0].soldProducts.length) {
+              //   quantitySoldToIncrease = parseInt(
+              //     theUser[0].soldProducts[index].quantitySold
+              //   );
+              // }
 
               UserSchema.findOneAndUpdate(
                 { _id: foundProduct[0].userID },
@@ -149,7 +149,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
                   ? {
                       $set: {
                         [`soldProducts.${index}.quantitySold`]:
-                          quantitySoldToIncrease + 1,
+                          +newQuantitySold,
                       },
                     }
                   : {
