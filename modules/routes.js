@@ -66,7 +66,7 @@ router.post("/login", BasicAuth, async (req, res) => {
 });
 
 router.post("/sellProduct", BearerAuth, (req, res) => {
-  const { barCode } = req.body;
+  const { barCode, newQuantity } = req.body;
   try {
     // Get Token Object
     let token = "";
@@ -106,7 +106,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
             ProductSchema.findOneAndUpdate(
               { productCode: barCode },
               {
-                quantity: -1,
+                quantity: newQuantity,
               }
             ).then(() => {
               let myProduct = {
@@ -115,7 +115,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
                 productPrice: foundProduct[0].productPrice,
                 dateSold: date,
                 timeSold: time,
-                quantitySold: +1,
+                quantitySold: +newQuantity,
               };
 
               // To identify the product and the index for it
