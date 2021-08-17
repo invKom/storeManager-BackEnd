@@ -94,10 +94,9 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
         // Checking if the user have anything in the DB and have this specific product
         if (doesTheUserHaveProducts.length && specificProduct) {
           ProductSchema.find({ productCode: barCode }).then((foundProduct) => {
-            let newQuantity = 0;
             if (foundProduct.length) {
               foundProduct[0].quantity > 0
-                ? (newQuantity = foundProduct[0].quantity - 1)
+                ? foundProduct
                 : res.json({
                     response: "No enough quantity in the inventory!",
                   });
@@ -107,7 +106,7 @@ router.post("/sellProduct", BearerAuth, (req, res) => {
             ProductSchema.findOneAndUpdate(
               { productCode: barCode },
               {
-                quantity: newQuantity,
+                quantity: -1,
               }
             ).then(() => {
               let myProduct = {
